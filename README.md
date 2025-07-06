@@ -46,6 +46,7 @@ One Click Docker run [Excalidraw-Full](https://github.com/BetterAndBetterII/exca
 # Example for Linux
 git clone https://github.com/BetterAndBetterII/excalidraw-full.git
 cd excalidraw-full
+mv .env.example .env
 touch ./excalidraw.db  # IMPORTANT: Initialize the SQLite DB, OTHERWISE IT WILL NOT START
 docker compose up -d
 ```

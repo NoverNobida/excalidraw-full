@@ -46,6 +46,7 @@ Excalidraw Full 已经进化。它不再仅仅是 Excalidraw 的一个简单封�
 # Linux 示例
 git clone https://github.com/BetterAndBetterII/excalidraw-full.git
 cd excalidraw-full
+mv .env.example .env
 touch ./excalidraw.db  # 重要：初始化 SQLite 数据库，否则无法启动
 docker compose up -d
 ```
