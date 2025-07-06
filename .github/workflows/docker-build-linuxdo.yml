@@ -3,12 +3,12 @@ name: Build and Push Docker Image
 on:
   push:
     branches:
-      - dev
+      - linux-do
   workflow_dispatch:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: excalidraw-full
+  IMAGE_NAME: excalidraw-full-linuxdo
   OWNER: betterandbetterii
 
 jobs:

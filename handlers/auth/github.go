@@ -15,12 +15,11 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/sirupsen/logrus"
 	"golang.org/x/oauth2"
-	"golang.org/x/oauth2/github"
 )
 
 var (
-	githubOauthConfig *oauth2.Config
-	jwtSecret         []byte
+	oauthConfig *oauth2.Config
+	jwtSecret   []byte
 )
 
 const oauthStateString = "random"
@@ -34,17 +33,20 @@ type AppClaims struct {
 }
 
 func Init() {
-	githubOauthConfig = &oauth2.Config{
-		ClientID:     os.Getenv("GITHUB_CLIENT_ID"),
-		ClientSecret: os.Getenv("GITHUB_CLIENT_SECRET"),
-		RedirectURL:  os.Getenv("GITHUB_REDIRECT_URL"),
+	oauthConfig = &oauth2.Config{
+		ClientID:     os.Getenv("LINUXDO_CLIENT_ID"),
+		ClientSecret: os.Getenv("LINUXDO_CLIENT_SECRET"),
+		RedirectURL:  os.Getenv("LINUXDO_REDIRECT_URL"),
 		Scopes:       []string{"read:user", "user:email"},
-		Endpoint:     github.Endpoint,
+		Endpoint: oauth2.Endpoint{
+			AuthURL:  "https://connect.linux.do/oauth2/authorize",
+			TokenURL: "https://connect.linux.do/oauth2/token",
+		},
 	}
 	jwtSecret = []byte(os.Getenv("JWT_SECRET"))
 
-	if githubOauthConfig.ClientID == "" || githubOauthConfig.ClientSecret == "" {
-		logrus.Warn("GitHub OAuth credentials are not set. Authentication routes will not work.")
+	if oauthConfig.ClientID == "" || oauthConfig.ClientSecret == "" {
+		logrus.Warn("OAuth credentials are not set. Authentication routes will not work.")
 	}
 	if len(jwtSecret) == 0 {
 		logrus.Warn("JWT_SECRET is not set. Authentication routes will not work.")
@@ -65,40 +67,40 @@ func generateStateOauthCookie(w http.ResponseWriter) string {
 	return state
 }
 
-func HandleGitHubLogin(w http.ResponseWriter, r *http.Request) {
-	if githubOauthConfig.ClientID == "" {
-		http.Error(w, "GitHub OAuth is not configured", http.StatusInternalServerError)
+func HandleOAuthLogin(w http.ResponseWriter, r *http.Request) {
+	if oauthConfig.ClientID == "" {
+		http.Error(w, "OAuth is not configured", http.StatusInternalServerError)
 		return
 	}
 	state := generateStateOauthCookie(w)
-	url := githubOauthConfig.AuthCodeURL(state)
+	url := oauthConfig.AuthCodeURL(state)
 	http.Redirect(w, r, url, http.StatusTemporaryRedirect)
 }
 
-func HandleGitHubCallback(w http.ResponseWriter, r *http.Request) {
-	if githubOauthConfig.ClientID == "" {
-		http.Error(w, "GitHub OAuth is not configured", http.StatusInternalServerError)
+func HandleOAuthCallback(w http.ResponseWriter, r *http.Request) {
+	if oauthConfig.ClientID == "" {
+		http.Error(w, "OAuth is not configured", http.StatusInternalServerError)
 		return
 	}
 
 	oauthState, _ := r.Cookie("oauthstate")
 	if r.FormValue("state") != oauthState.Value {
-		logrus.Error("invalid oauth github state")
+		logrus.Error("invalid oauth state")
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
 	}
 
-	token, err := githubOauthConfig.Exchange(context.Background(), r.FormValue("code"))
+	token, err := oauthConfig.Exchange(context.Background(), r.FormValue("code"))
 	if err != nil {
 		logrus.Errorf("failed to exchange token: %s", err.Error())
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
 	}
 
-	client := githubOauthConfig.Client(context.Background(), token)
-	resp, err := client.Get("https://api.github.com/user")
+	client := oauthConfig.Client(context.Background(), token)
+	resp, err := client.Get("https://connect.linux.do/api/user")
 	if err != nil {
-		logrus.Errorf("failed to get user from github: %s", err.Error())
+		logrus.Errorf("failed to get user from oauth provider: %s", err.Error())
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
 	}
@@ -106,20 +108,20 @@ func HandleGitHubCallback(w http.ResponseWriter, r *http.Request) {
 
 	body, err := io.ReadAll(resp.Body)
 	if err != nil {
-		logrus.Errorf("failed to read github response body: %s", err.Error())
+		logrus.Errorf("failed to read oauth provider response body: %s", err.Error())
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
 	}
 
-	var githubUser struct {
+	var oauthUser struct {
 		ID        int64  `json:"id"`
 		Login     string `json:"login"`
 		AvatarURL string `json:"avatar_url"`
 		Name      string `json:"name"`
 	}
 
-	if err := json.Unmarshal(body, &githubUser); err != nil {
-		logrus.Errorf("failed to unmarshal github user: %s", err.Error())
+	if err := json.Unmarshal(body, &oauthUser); err != nil {
+		logrus.Errorf("failed to unmarshal oauth user: %s", err.Error())
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
 	}
@@ -127,10 +129,10 @@ func HandleGitHubCallback(w http.ResponseWriter, r *http.Request) {
 	// For now we don't have a user database, so we create a user object on the fly.
 	// In phase 3, we will save/get the user from the database here.
 	user := &core.User{
-		GitHubID:  githubUser.ID,
-		Login:     githubUser.Login,
-		AvatarURL: githubUser.AvatarURL,
-		Name:      githubUser.Name,
+		GitHubID:  oauthUser.ID,
+		Login:     oauthUser.Login,
+		AvatarURL: oauthUser.AvatarURL,
+		Name:      oauthUser.Name,
 	}
 
 	jwtToken, err := createJWT(user)

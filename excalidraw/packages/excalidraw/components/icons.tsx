@@ -478,6 +478,45 @@ export const GithubIcon = createIcon(
   modifiedTablerIconProps,
 );
 
+export const LinuxdoIcon = createIcon(
+  <svg
+    width="20"
+    height="20"
+    viewBox="0 0 120 120"
+    xmlns="http://www.w3.org/2000/svg"
+  >
+    <clipPath id="a">
+      <circle cx="60" cy="60" r="47" />
+    </clipPath>
+    <circle fill="#f0f0f0" cx="60" cy="60" r="50" />
+    <rect
+      fill="#1c1c1e"
+      clip-path="url(#a)"
+      x="10"
+      y="10"
+      width="100"
+      height="30"
+    />
+    <rect
+      fill="#f0f0f0"
+      clip-path="url(#a)"
+      x="10"
+      y="40"
+      width="100"
+      height="40"
+    />
+    <rect
+      fill="#ffb003"
+      clip-path="url(#a)"
+      x="10"
+      y="80"
+      width="100"
+      height="30"
+    />
+  </svg>,
+  modifiedTablerIconProps,
+);
+
 export const DiscordIcon = createIcon(
   <g strokeWidth="1.25">
     <path d="M7.5 10.833a.833.833 0 1 0 0-1.666.833.833 0 0 0 0 1.666ZM12.5 10.833a.833.833 0 1 0 0-1.666.833.833 0 0 0 0 1.666ZM6.25 6.25c2.917-.833 4.583-.833 7.5 0M5.833 13.75c2.917.833 5.417.833 8.334 0" />

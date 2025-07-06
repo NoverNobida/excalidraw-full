@@ -4,9 +4,10 @@ import { LanguageList } from "./LanguageList";
 import { useAtom, useSetAtom } from "jotai";
 import { userAtom, saveAsDialogAtom } from "../app-jotai";
 import {
-  GithubIcon,
+  LinuxdoIcon,
   saveAs,
   extraToolsIcon,
+  GithubIcon,
 } from "../../packages/excalidraw/components/icons";
 import DropdownMenuItemLink from "../../packages/excalidraw/components/dropdownMenu/DropdownMenuItemLink";
 import { useI18n } from "../../packages/excalidraw/i18n";
@@ -22,7 +23,7 @@ export const AppMainMenu: React.FC<{
   const setSaveAsDialog = useSetAtom(saveAsDialogAtom);
 
   const handleLogin = () => {
-    window.location.href = "/auth/github/login";
+    window.location.href = "/auth/linuxdo/login";
   };
 
   const handleLogout = () => {
@@ -126,8 +127,8 @@ export const AppMainMenu: React.FC<{
           </button>
         </div>
       ) : (
-        <MainMenu.Item onSelect={handleLogin} icon={GithubIcon}>
-          Login with GitHub
+        <MainMenu.Item onSelect={handleLogin} icon={LinuxdoIcon}>
+          Login with Linux.do
         </MainMenu.Item>
       )}
       <MainMenu.Separator />

@@ -1,5 +1,5 @@
 import React from "react";
-import { GithubIcon } from "../../packages/excalidraw/components/icons";
+import { LinuxdoIcon } from "../../packages/excalidraw/components/icons";
 import { useI18n } from "../../packages/excalidraw/i18n";
 import { WelcomeScreen } from "../../packages/excalidraw/index";
 import { isExcalidrawPlusSignedUser } from "../app_constants";
@@ -61,11 +61,11 @@ export const AppWelcomeScreen: React.FC<{
           {!user && (
             <WelcomeScreen.Center.MenuItem
               onSelect={() => {
-                window.location.href = "/auth/github/login";
+                window.location.href = "/auth/linuxdo/login";
               }}
-              icon={GithubIcon}
+              icon={LinuxdoIcon}
             >
-              Login with GitHub
+              Login with Linux.do
             </WelcomeScreen.Center.MenuItem>
           )}
         </WelcomeScreen.Center.Menu>
