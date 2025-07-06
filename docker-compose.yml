@@ -7,6 +7,5 @@ services:
       - "3002:3002"
     volumes:
       - ./data:/root/data
-      - ./excalidraw.db:/root/excalidraw.db
-    env_file:
-      - .env
+      - ./excalidraw.db:/root/excalidraw.db:Z
+      - ./.env:/root/.env
