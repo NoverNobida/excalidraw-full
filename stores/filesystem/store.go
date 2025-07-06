@@ -92,6 +92,12 @@ func (s *fsStore) List(ctx context.Context, userID string) ([]*core.Canvas, erro
 	for _, file := range files {
 		if !file.IsDir() {
 			filePath := filepath.Join(userPath, file.Name())
+			fileInfo, err := file.Info()
+			if err != nil {
+				log.WithError(err).Warnf("Failed to get file info for %s, skipping", file.Name())
+				continue
+			}
+
 			data, err := os.ReadFile(filePath)
 			if err != nil {
 				log.WithError(err).Warnf("Failed to read canvas file %s, skipping", file.Name())
@@ -105,7 +111,9 @@ func (s *fsStore) List(ctx context.Context, userID string) ([]*core.Canvas, erro
 			}
 
 			// For list view, we don't need the full data blob.
+			// Also ensure we populate metadata from the filesystem.
 			canvas.Data = nil
+			canvas.UpdatedAt = fileInfo.ModTime()
 			canvases = append(canvases, &canvas)
 		}
 	}
