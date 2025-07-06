@@ -74,6 +74,7 @@ func (s *memStore) List(ctx context.Context, userID string) ([]*core.Canvas, err
 			ID:        canvas.ID,
 			UserID:    canvas.UserID,
 			Name:      canvas.Name,
+			Thumbnail: canvas.Thumbnail,
 			CreatedAt: canvas.CreatedAt,
 			UpdatedAt: canvas.UpdatedAt,
 		}

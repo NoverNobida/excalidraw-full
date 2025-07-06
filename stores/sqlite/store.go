@@ -9,9 +9,9 @@ import (
 	"log"
 	"time"
 
-	_ "github.com/mattn/go-sqlite3"
 	"github.com/oklog/ulid/v2"
 	"github.com/sirupsen/logrus"
+	_ "modernc.org/sqlite"
 )
 
 type sqliteStore struct {
@@ -20,7 +20,7 @@ type sqliteStore struct {
 
 // NewStore creates a new SQLite-based store.
 func NewStore(dataSourceName string) *sqliteStore {
-	db, err := sql.Open("sqlite3", dataSourceName)
+	db, err := sql.Open("sqlite", dataSourceName)
 	if err != nil {
 		log.Fatalf("failed to open sqlite database: %v", err)
 	}
@@ -37,6 +37,7 @@ func NewStore(dataSourceName string) *sqliteStore {
 		id TEXT NOT NULL,
 		user_id TEXT NOT NULL,
 		name TEXT,
+		thumbnail TEXT,
 		data BLOB,
 		created_at DATETIME,
 		updated_at DATETIME,
@@ -89,7 +90,7 @@ func (s *sqliteStore) Create(ctx context.Context, document *core.Document) (stri
 
 // CanvasStore implementation
 func (s *sqliteStore) List(ctx context.Context, userID string) ([]*core.Canvas, error) {
-	rows, err := s.db.QueryContext(ctx, "SELECT id, name, updated_at FROM canvases WHERE user_id = ?", userID)
+	rows, err := s.db.QueryContext(ctx, "SELECT id, name, updated_at, thumbnail FROM canvases WHERE user_id = ?", userID)
 	if err != nil {
 		return nil, err
 	}
@@ -99,7 +100,7 @@ func (s *sqliteStore) List(ctx context.Context, userID string) ([]*core.Canvas, 
 	for rows.Next() {
 		var canvas core.Canvas
 		canvas.UserID = userID
-		if err := rows.Scan(&canvas.ID, &canvas.Name, &canvas.UpdatedAt); err != nil {
+		if err := rows.Scan(&canvas.ID, &canvas.Name, &canvas.UpdatedAt, &canvas.Thumbnail); err != nil {
 			return nil, err
 		}
 		canvases = append(canvases, &canvas)
@@ -111,7 +112,7 @@ func (s *sqliteStore) Get(ctx context.Context, userID, id string) (*core.Canvas,
 	var canvas core.Canvas
 	canvas.UserID = userID
 	canvas.ID = id
-	err := s.db.QueryRowContext(ctx, "SELECT name, data, created_at, updated_at FROM canvases WHERE user_id = ? AND id = ?", userID, id).Scan(&canvas.Name, &canvas.Data, &canvas.CreatedAt, &canvas.UpdatedAt)
+	err := s.db.QueryRowContext(ctx, "SELECT name, data, created_at, updated_at, thumbnail FROM canvases WHERE user_id = ? AND id = ?", userID, id).Scan(&canvas.Name, &canvas.Data, &canvas.CreatedAt, &canvas.UpdatedAt, &canvas.Thumbnail)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return nil, fmt.Errorf("canvas not found")
@@ -138,10 +139,10 @@ func (s *sqliteStore) Save(ctx context.Context, canvas *core.Canvas) error {
 
 	if exists {
 		// Update
-		_, err = tx.ExecContext(ctx, "UPDATE canvases SET name = ?, data = ?, updated_at = ? WHERE user_id = ? AND id = ?", canvas.Name, canvas.Data, now, canvas.UserID, canvas.ID)
+		_, err = tx.ExecContext(ctx, "UPDATE canvases SET name = ?, data = ?, updated_at = ?, thumbnail = ? WHERE user_id = ? AND id = ?", canvas.Name, canvas.Data, now, canvas.Thumbnail, canvas.UserID, canvas.ID)
 	} else {
 		// Insert
-		_, err = tx.ExecContext(ctx, "INSERT INTO canvases (id, user_id, name, data, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?)", canvas.ID, canvas.UserID, canvas.Name, canvas.Data, now, now)
+		_, err = tx.ExecContext(ctx, "INSERT INTO canvases (id, user_id, name, data, created_at, updated_at, thumbnail) VALUES (?, ?, ?, ?, ?, ?, ?)", canvas.ID, canvas.UserID, canvas.Name, canvas.Data, now, now, canvas.Thumbnail)
 	}
 
 	if err != nil {

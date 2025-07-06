@@ -113,20 +113,27 @@ func HandleSaveCanvas(store stores.Store) http.HandlerFunc {
 			AppState struct {
 				Name string `json:"name"`
 			} `json:"appState"`
+			Thumbnail string `json:"thumbnail"`
 		}
 		// We make a copy of the body because json.Unmarshal will consume the reader.
 		bodyCopy := make([]byte, len(body))
 		copy(bodyCopy, body)
 
 		canvasName := key // Default to key
-		if err := json.Unmarshal(bodyCopy, &canvasData); err == nil && canvasData.AppState.Name != "" {
-			canvasName = canvasData.AppState.Name
+		var canvasThumbnail string
+		if err := json.Unmarshal(bodyCopy, &canvasData); err == nil {
+			if canvasData.AppState.Name != "" {
+				canvasName = canvasData.AppState.Name
+			}
+			canvasThumbnail = canvasData.Thumbnail
 		}
+
 		canvas := &core.Canvas{
-			ID:     key,
-			UserID: claims.Subject,
-			Name:   canvasName,
-			Data:   body,
+			ID:        key,
+			UserID:    claims.Subject,
+			Name:      canvasName,
+			Thumbnail: canvasThumbnail,
+			Data:      body,
 		}
 
 		if err := store.Save(r.Context(), canvas); err != nil {

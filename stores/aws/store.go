@@ -3,15 +3,20 @@ package aws
 import (
 	"bytes"
 	"context"
+	"encoding/json"
+	"errors"
 	"excalidraw-complete/core"
 	"fmt"
+	"io"
 	"io/ioutil"
 	"log"
 	"path"
+	"time"
 
 	"github.com/aws/aws-sdk-go-v2/aws"
 	"github.com/aws/aws-sdk-go-v2/config"
 	"github.com/aws/aws-sdk-go-v2/service/s3"
+	s3types "github.com/aws/aws-sdk-go-v2/service/s3/types"
 	"github.com/oklog/ulid/v2"
 )
 
@@ -90,14 +95,30 @@ func (s *s3Store) List(ctx context.Context, userID string) ([]*core.Canvas, erro
 
 	canvases := make([]*core.Canvas, 0, len(output.Contents))
 	for _, object := range output.Contents {
-		canvasID := path.Base(*object.Key)
-		canvas := &core.Canvas{
-			ID:        canvasID,
-			UserID:    userID,
-			Name:      canvasID, // S3 doesn't have a native 'name' field, using ID.
-			UpdatedAt: *object.LastModified,
+		resp, err := s.s3Client.GetObject(ctx, &s3.GetObjectInput{
+			Bucket: aws.String(s.bucket),
+			Key:    object.Key,
+		})
+		if err != nil {
+			log.Printf("warn: failed to get object %s: %v", *object.Key, err)
+			continue
 		}
-		canvases = append(canvases, canvas)
+		data, err := io.ReadAll(resp.Body)
+		resp.Body.Close()
+		if err != nil {
+			log.Printf("warn: failed to read object body %s: %v", *object.Key, err)
+			continue
+		}
+
+		var canvas core.Canvas
+		if err := json.Unmarshal(data, &canvas); err != nil {
+			log.Printf("warn: failed to unmarshal canvas %s: %v", *object.Key, err)
+			continue
+		}
+
+		// For list view, we don't need the full data blob.
+		canvas.Data = nil
+		canvases = append(canvases, &canvas)
 	}
 
 	return canvases, nil
@@ -111,35 +132,50 @@ func (s *s3Store) Get(ctx context.Context, userID, id string) (*core.Canvas, err
 	})
 	if err != nil {
 		// A specific check for NoSuchKey can be useful here.
-		if bytes.Contains([]byte(err.Error()), []byte("NoSuchKey")) {
+		var nsk *s3types.NoSuchKey
+		if errors.As(err, &nsk) {
 			return nil, fmt.Errorf("canvas not found")
 		}
 		return nil, fmt.Errorf("failed to get canvas %s: %v", id, err)
 	}
 	defer resp.Body.Close()
 
-	data, err := ioutil.ReadAll(resp.Body)
+	data, err := io.ReadAll(resp.Body)
 	if err != nil {
 		return nil, fmt.Errorf("failed to read canvas data: %v", err)
 	}
 
-	canvas := &core.Canvas{
-		ID:        id,
-		UserID:    userID,
-		Name:      id,
-		Data:      data,
-		UpdatedAt: *resp.LastModified,
+	var canvas core.Canvas
+	if err := json.Unmarshal(data, &canvas); err != nil {
+		return nil, fmt.Errorf("failed to unmarshal canvas data: %v", err)
 	}
 
-	return canvas, nil
+	return &canvas, nil
 }
 
 func (s *s3Store) Save(ctx context.Context, canvas *core.Canvas) error {
 	key := s.getCanvasKey(canvas.UserID, canvas.ID)
-	_, err := s.s3Client.PutObject(ctx, &s3.PutObjectInput{
+
+	// Preserve CreatedAt on update
+	if canvas.CreatedAt.IsZero() {
+		existing, err := s.Get(ctx, canvas.UserID, canvas.ID)
+		if err == nil && existing != nil {
+			canvas.CreatedAt = existing.CreatedAt
+		} else {
+			canvas.CreatedAt = time.Now()
+		}
+	}
+	canvas.UpdatedAt = time.Now()
+
+	data, err := json.Marshal(canvas)
+	if err != nil {
+		return fmt.Errorf("failed to marshal canvas: %v", err)
+	}
+
+	_, err = s.s3Client.PutObject(ctx, &s3.PutObjectInput{
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(key),
-		Body:   bytes.NewReader(canvas.Data),
+		Body:   bytes.NewReader(data),
 	})
 	if err != nil {
 		return fmt.Errorf("failed to save canvas %s: %v", canvas.ID, err)

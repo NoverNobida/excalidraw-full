@@ -3,6 +3,7 @@ package filesystem
 import (
 	"bytes"
 	"context"
+	"encoding/json"
 	"excalidraw-complete/core"
 	"fmt"
 	"log"
@@ -90,18 +91,22 @@ func (s *fsStore) List(ctx context.Context, userID string) ([]*core.Canvas, erro
 	canvases := make([]*core.Canvas, 0, len(files))
 	for _, file := range files {
 		if !file.IsDir() {
-			info, err := file.Info()
+			filePath := filepath.Join(userPath, file.Name())
+			data, err := os.ReadFile(filePath)
 			if err != nil {
-				log.WithError(err).Warn("Failed to get file info, skipping file")
+				log.WithError(err).Warnf("Failed to read canvas file %s, skipping", file.Name())
 				continue
 			}
-			canvas := &core.Canvas{
-				ID:        file.Name(),
-				UserID:    userID,
-				Name:      file.Name(),
-				UpdatedAt: info.ModTime(),
+
+			var canvas core.Canvas
+			if err := json.Unmarshal(data, &canvas); err != nil {
+				log.WithError(err).Warnf("Failed to unmarshal canvas file %s, skipping", file.Name())
+				continue
 			}
-			canvases = append(canvases, canvas)
+
+			// For list view, we don't need the full data blob.
+			canvas.Data = nil
+			canvases = append(canvases, &canvas)
 		}
 	}
 
@@ -130,16 +135,15 @@ func (s *fsStore) Get(ctx context.Context, userID, id string) (*core.Canvas, err
 		return nil, err
 	}
 
-	canvas := &core.Canvas{
-		ID:        id,
-		UserID:    userID,
-		Name:      id,
-		Data:      data,
-		UpdatedAt: info.ModTime(),
+	var canvas core.Canvas
+	if err := json.Unmarshal(data, &canvas); err != nil {
+		log.WithError(err).Error("Failed to unmarshal canvas data")
+		return nil, err
 	}
+	canvas.UpdatedAt = info.ModTime()
 
 	log.Info("Canvas retrieved successfully")
-	return canvas, nil
+	return &canvas, nil
 }
 
 func (s *fsStore) Save(ctx context.Context, canvas *core.Canvas) error {
@@ -152,20 +156,27 @@ func (s *fsStore) Save(ctx context.Context, canvas *core.Canvas) error {
 		return err
 	}
 
+	// Set creation/update time before saving
+	info, err := os.Stat(filePath)
+	if os.IsNotExist(err) {
+		canvas.CreatedAt = time.Now()
+	} else if err == nil {
+		canvas.CreatedAt = info.ModTime() // This is not ideal, but filesystem doesn't store creation time easily.
+	}
+	canvas.UpdatedAt = time.Now()
+
 	log.Info("Saving canvas")
-	err := os.WriteFile(filePath, canvas.Data, 0644)
+	data, err := json.Marshal(canvas)
+	if err != nil {
+		log.WithError(err).Error("Failed to marshal canvas for saving")
+		return err
+	}
+
+	err = os.WriteFile(filePath, data, 0644)
 	if err != nil {
 		log.WithError(err).Error("Failed to write canvas file")
 		return err
 	}
-
-	// Set modification time for consistency, though WriteFile usually does this.
-	// We preserve created time logic in the storage layer if needed.
-	now := time.Now()
-	canvas.UpdatedAt = now
-
-	// A full implementation would handle CreatedAt by checking if the file exists first.
-	// For this KV-like store, we'll just update ModTime via WriteFile.
 
 	return nil
 }
