@@ -48,7 +48,7 @@ const STORAGE_CONFIG_SESSION_STORAGE_KEY =
   "excalidraw-storage-config-credentials";
 
 const getInitialStorageConfig = (): StorageConfig => {
-  const defaultConfig: StorageConfig = { type: "default" };
+  const defaultConfig: StorageConfig = { type: "indexed-db" };
 
   try {
     const nonSensitive = localStorage.getItem(STORAGE_CONFIG_LOCAL_STORAGE_KEY);

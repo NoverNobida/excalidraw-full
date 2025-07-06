@@ -9,8 +9,11 @@ import { storageConfigAtom } from "../app-jotai";
 export type StorageType = "default" | "kv" | "s3" | "indexed-db";
 
 const StorageSettingsDialog = ({ onClose }: { onClose: () => void }) => {
+  const storedToken = localStorage.getItem("token"); // 如果未登录，无法使用后端存储
   const [config, setConfig] = useAtom(storageConfigAtom);
-  const [storageType, setStorageType] = useState<StorageType>(config.type);
+  const [storageType, setStorageType] = useState<StorageType>(
+    !storedToken && config.type === "default" ? "indexed-db" : config.type,
+  );
 
   // Local state for form inputs
   const [kvUrl, setKvUrl] = useState(config.kvUrl || "");
@@ -96,8 +99,9 @@ const StorageSettingsDialog = ({ onClose }: { onClose: () => void }) => {
       default:
         return (
           <p>
-            Your data is stored on the default backend of this Excalidraw
-            instance. This requires you to be logged in.
+            {!storedToken
+              ? "You must be logged in to use the default backend storage. Please log in and try again."
+              : "Your data is stored on the default backend of this Excalidraw instance. This requires you to be logged in."}
           </p>
         );
     }
@@ -125,7 +129,15 @@ const StorageSettingsDialog = ({ onClose }: { onClose: () => void }) => {
           }}
         >
           <option value="indexed-db">Browser (IndexedDB)</option>
-          <option value="default">Default Backend (Online)</option>
+          <option
+            value="default"
+            disabled={!storedToken}
+            title={
+              !storedToken ? "Please log in to use this option" : undefined
+            }
+          >
+            Default Backend (Online)
+          </option>
           <option value="kv">Cloudflare KV (Online)</option>
           <option value="s3">Amazon S3 (Online)</option>
         </select>
