@@ -1,10 +1,24 @@
-# Excalidraw Complete: Your Self-Hosted, Cloud-Ready Collaboration Platform
+# Excalidraw Full: Your Self-Hosted, Cloud-Ready Collaboration Platform
 
-![README-zh](./README_zh.md)
+[中文说明](./README_zh.md)
 
-Excalidraw Complete has evolved. It's no longer just a simple wrapper for Excalidraw, but a powerful, self-hosted collaboration platform with a "Bring Your Own Cloud" (BYOC) philosophy. It provides user authentication, multi-canvas management, and the unique ability to connect directly to your own cloud storage from the frontend.
+Excalidraw Full has evolved. It's no longer just a simple wrapper for Excalidraw, but a powerful, self-hosted collaboration platform with a "Bring Your Own Cloud" (BYOC) philosophy. It provides user authentication, multi-canvas management, and the unique ability to connect directly to your own cloud storage from the frontend.
 
 The core idea is to let the backend handle user identity while giving you, the user, full control over where your data is stored.
+
+## Core Differences from Official Excalidraw
+
+- **Fully Self-Hosted Collaboration & Sharing**: Unlike the official version, all real-time collaboration and sharing features are handled by your own self-hosted backend, ensuring complete data privacy and control.
+- **Advanced Multi-Canvas Management**: Seamlessly create, save, and manage multiple canvases. Store your work on the server's backend (e.g., SQLite, S3) or connect the frontend directly to your personal cloud storage (e.g., Cloudflare KV) for true data sovereignty.
+- **Zero-Config AI Features**: Instantly access integrated OpenAI features like GPT-4 Vision after logging in—no complex client-side setup required. API keys are securely managed by the backend.
+
+![Multi-Canvas Management](./img/PixPin_2025-07-06_16-07-27.png)
+
+![Multi-Choice Storage](./img/PixPin_2025-07-06_16-08-29.png)
+
+![Oauth2 Login](./img/PixPin_2025-07-06_16-09-24.png)
+
+![AI Features](./img/PixPin_2025-07-06_16-09-55.png)
 
 ## Key Features
 

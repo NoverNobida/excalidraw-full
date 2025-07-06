@@ -1,8 +1,24 @@
-# Excalidraw Complete: 您的自托管、云就绪协作平台
+# Excalidraw Full: 您的自托管、云就绪协作平台
 
-Excalidraw Complete 已经进化。它不再仅仅是 Excalidraw 的一个简单封装，而是一个强大的、自托管的协作平台，秉承"自带云"（BYOC - Bring Your Own Cloud）的理念。它提供用户认证、多画板管理，以及从前端直接连接到您自己的云存储的独特能力。
+Excalidraw Full 已经进化。它不再仅仅是 Excalidraw 的一个简单封装，而是一个强大的、自托管的协作平台，秉承"自带云"（BYOC - Bring Your Own Cloud）的理念。它提供用户认证、多画板管理，以及从前端直接连接到您自己的云存储的独特能力。
 
 其核心思想是让后端处理用户身份，同时让您（用户）完全控制数据的存储位置。
+
+## 与官方 Excalidraw 的核心区别
+
+- **完全自托管的协作与分享**: 与官方版 Excalidraw 不同，所有的实时协作和分享功能都由您自己部署的后端服务处理，确保了数据的私密性和可控性。
+- **强大的多画布管理**: 您可以轻松创建、保存和管理多个画布。数据可以存储在服务器后端（如 SQLite、S3），也可以由前端直接连接到您自己的云存储（如 Cloudflare KV），实现了真正的"数据主权"。
+- **开箱即用的 AI 功能**: 无需复杂的客户端配置，登录后即可直接使用集成的 OpenAI 功能（如 GPT-4 Vision），API 密钥由后端安全管理，前端只负责调用。
+
+
+![Multi-Canvas Management](./img/PixPin_2025-07-06_16-07-27.png)
+
+![Multi-Choice Storage](./img/PixPin_2025-07-06_16-08-29.png)
+
+![Oauth2 Login](./img/PixPin_2025-07-06_16-09-24.png)
+
+![AI Features](./img/PixPin_2025-07-06_16-09-55.png)
+
 
 ## 主要特性
 
