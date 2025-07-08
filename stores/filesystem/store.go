@@ -9,6 +9,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/oklog/ulid/v2"
@@ -127,7 +128,22 @@ func (s *fsStore) Get(ctx context.Context, userID, id string) (*core.Canvas, err
 	filePath := filepath.Join(userPath, id)
 	log := logrus.WithFields(logrus.Fields{"user_id": userID, "canvas_id": id, "path": filePath})
 
-	data, err := os.ReadFile(filePath)
+	// 关键修复：验证路径合法性
+	absUserPath, err := filepath.Abs(userPath)
+	if err != nil {
+		return nil, err // or handle error appropriately
+	}
+	absFilePath, err := filepath.Abs(filePath)
+	if err != nil {
+		return nil, err // or handle error appropriately
+	}
+
+	if !strings.HasPrefix(absFilePath, absUserPath) {
+		return nil, fmt.Errorf("invalid path: access denied")
+	}
+	// 修复结束
+
+	data, err := os.ReadFile(absFilePath) // 使用清理过的路径
 	if err != nil {
 		if os.IsNotExist(err) {
 			log.Warn("Canvas file not found")

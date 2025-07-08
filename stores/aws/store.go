@@ -79,8 +79,16 @@ func (s *s3Store) Create(ctx context.Context, document *core.Document) (string, 
 }
 
 // CanvasStore implementation for user-owned canvases
-func (s *s3Store) getCanvasKey(userID, canvasID string) string {
-	return path.Join(userID, canvasID)
+func (s *s3Store) getCanvasKey(userID, canvasID string) (string, error) {
+	// Sanitize canvasID to prevent path traversal attacks.
+	// It should be a simple name, not a path.
+	if path.Base(canvasID) != canvasID {
+		return "", fmt.Errorf("invalid canvas id: must not be a path")
+	}
+	if canvasID == "" || canvasID == "." || canvasID == ".." {
+		return "", fmt.Errorf("invalid canvas id: must not be empty or a dot directory")
+	}
+	return path.Join(userID, canvasID), nil
 }
 
 func (s *s3Store) List(ctx context.Context, userID string) ([]*core.Canvas, error) {
@@ -125,7 +133,10 @@ func (s *s3Store) List(ctx context.Context, userID string) ([]*core.Canvas, erro
 }
 
 func (s *s3Store) Get(ctx context.Context, userID, id string) (*core.Canvas, error) {
-	key := s.getCanvasKey(userID, id)
+	key, err := s.getCanvasKey(userID, id)
+	if err != nil {
+		return nil, err
+	}
 	resp, err := s.s3Client.GetObject(ctx, &s3.GetObjectInput{
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(key),
@@ -154,7 +165,10 @@ func (s *s3Store) Get(ctx context.Context, userID, id string) (*core.Canvas, err
 }
 
 func (s *s3Store) Save(ctx context.Context, canvas *core.Canvas) error {
-	key := s.getCanvasKey(canvas.UserID, canvas.ID)
+	key, err := s.getCanvasKey(canvas.UserID, canvas.ID)
+	if err != nil {
+		return err
+	}
 
 	// Preserve CreatedAt on update
 	if canvas.CreatedAt.IsZero() {
@@ -184,8 +198,11 @@ func (s *s3Store) Save(ctx context.Context, canvas *core.Canvas) error {
 }
 
 func (s *s3Store) Delete(ctx context.Context, userID, id string) error {
-	key := s.getCanvasKey(userID, id)
-	_, err := s.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
+	key, err := s.getCanvasKey(userID, id)
+	if err != nil {
+		return err
+	}
+	_, err = s.s3Client.DeleteObject(ctx, &s3.DeleteObjectInput{
 		Bucket: aws.String(s.bucket),
 		Key:    aws.String(key),
 	})
