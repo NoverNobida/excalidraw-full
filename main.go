@@ -161,9 +161,9 @@ func setupRouter(store stores.Store) *chi.Mux {
 		})
 	})
 
-	r.Route("/auth/github", func(r chi.Router) {
-		r.Get("/login", auth.HandleGitHubLogin)
-		r.Get("/callback", auth.HandleGitHubCallback)
+	r.Route("/auth/linuxdo", func(r chi.Router) {
+		r.Get("/login", auth.HandleOAuthLogin)
+		r.Get("/callback", auth.HandleOAuthCallback)
 	})
 
 	return r

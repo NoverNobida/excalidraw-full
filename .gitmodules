@@ -4,4 +4,4 @@
 [submodule "excalidraw"]
 	path = excalidraw
 	url = git@github.com:BetterAndBetterII/excalidraw.git
-	branch = multi-canvas
+	branch = multi-canvas-linuxdo
