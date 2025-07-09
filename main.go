@@ -87,7 +87,12 @@ func handleUI() http.HandlerFunc {
 			return
 		}
 
-		modifiedContent := strings.ReplaceAll(string(fileContent), "firestore.googleapis.com", "localhost:3002")
+		// 替换为请求的url对应的domain，使其在反向代理或不同域名下也能正常工作。
+		backendHost := os.Getenv("EXCALIDRAW_BACKEND_HOST")
+		if backendHost == "" {
+			backendHost = r.Host
+		}
+		modifiedContent := strings.ReplaceAll(string(fileContent), "firestore.googleapis.com", backendHost)
 		modifiedContent = strings.ReplaceAll(modifiedContent, "ssl=!0", "ssl=0")
 		modifiedContent = strings.ReplaceAll(modifiedContent, "ssl:!0", "ssl:0")
 
